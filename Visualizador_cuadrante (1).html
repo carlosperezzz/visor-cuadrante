@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Cuadrantes PGPlanning - Multi-Categoría</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .upload-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .upload-card.completed {
+            border: 3px solid #27ae60;
+            background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+        }
+
+        .upload-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3em;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-label {
+            display: block;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: 2px dashed rgba(255,255,255,0.3);
+        }
+
+        .file-label:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-label.loaded {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .filters-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .filters-section.active {
+            display: block;
+        }
+
+        .filter-type-selector {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .filter-type-btn {
+            padding: 15px 30px;
+            border: 3px solid #e0e0e0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-type-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-type-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .filter-panel {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .filter-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-filter {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 25px;
+            width: 100%;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .dia-section {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .dia-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .category-section {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .category-header h2 {
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-pill {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .turno-section {
+            padding: 25px 30px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .turno-section:last-child {
+            border-bottom: none;
+        }
+
+        .turno-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .turno-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .turno-manana .turno-icon { background: #d4edda; }
+        .turno-tarde .turno-icon { background: #fff3cd; }
+        .turno-noche .turno-icon { background: #d1ecf1; }
+
+        .turno-title {
+            flex: 1;
+        }
+
+        .turno-title h3 {
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .turno-title p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .contador {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .empleados-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .empleado-tag {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-size: 14px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .empleado-tag::before {
+            content: "👤";
+        }
+
+        .empty-turno {
+            color: #95a5a6;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .global-actions {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .fab {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fab:hover {
+            transform: scale(1.05);
+        }
+
+        .fab.secondary {
+            background: #27ae60;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            color: #7f8c8d;
+            font-size: 14px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-card .detail {
+            color: #95a5a6;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #95a5a6;
+        }
+
+        @media (max-width: 768px) {
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-type-selector {
+                flex-direction: column;
+            }
+            
+            .global-actions {
+                left: 20px;
+                right: 20px;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Gestión de Cuadrantes PGPlanning</h1>
+        <p class="subtitle">Carga los archivos de categorías disponibles para comenzar el análisis (Operadores de Enlace es opcional)</p>
+
+        <div class="upload-grid" id="uploadGrid">
+            <div class="upload-card" id="card-gestores">
+                <h3>👔 Gestores</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-gestores" accept=".xlsx, .xls" onchange="handleFileUpload('gestores', event)">
+                    <label for="file-gestores" class="file-label" id="label-gestores">
+                        📁 Cargar archivo Excel
+                    </label>
+                </div>
+            </div>
+
+            <div class="upload-card" id="card-operadores">
+                <h3>📞 Operadores de Enlace</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-operadores" accept=".xlsx, .xls" onchange="handleFileUpload('operadores', event)">
+                    <label for="file-operadores" class="file-label" id="label-operadores">
+                        📁 Cargar archivo Excel
+                    </label>
+                </div>
+            </div>
+
+            <div class="upload-card" id="card-coordinadores">
+                <h3>🎯 Coordinadores de Sala</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-coordinadores" accept=".xlsx, .xls" onchange="handleFileUpload('coordinadores', event)">
+                    <label for="file-coordinadores" class="file-label" id="label-coordinadores">
+                        📁 Cargar archivo Excel
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="filters-section" id="filtersSection">
+            <h2 style="margin-bottom: 20px; color: #333; text-align: center;">🔍 Configurar Filtro</h2>
+            
+            <div class="filter-type-selector">
+                <button class="filter-type-btn active" onclick="setFilterType('dia')" id="btn-dia">
+                    📅 Un día específico
+                </button>
+                <button class="filter-type-btn" onclick="setFilterType('rango')" id="btn-rango">
+                    📊 Rango de días
+                </button>
+            </div>
+
+            <!-- Filtro por un día -->
+            <div class="filter-panel active" id="panel-dia">
+                <div class="filter-grid" style="max-width: 400px; margin: 0 auto;">
+                    <div class="filter-group">
+                        <label id="label-dia-filtro">Selecciona el día del mes</label>
+                        <input type="number" id="diaEspecifico" min="1" max="31" value="17">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro por rango -->
+            <div class="filter-panel" id="panel-rango">
+                <div class="filter-grid" style="max-width: 600px; margin: 0 auto;">
+                    <div class="filter-group">
+                        <label>Desde el día</label>
+                        <input type="number" id="diaInicio" min="1" max="31" value="1">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta el día</label>
+                        <input type="number" id="diaFin" min="1" max="31" value="31">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-filter" onclick="applyFilters()">
+                🔍 Analizar Cuadrantes
+            </button>
+            <div id="single-day-hint" style="text-align:center; margin-top:12px; color:#667eea; font-weight:600; font-size:0.95em;"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="summary-cards" id="summaryCards">
+                <!-- Se genera dinámicamente -->
+            </div>
+
+            <div id="resultsContent">
+                <!-- Se genera dinámicamente por día y categoría -->
+            </div>
+        </div>
+    </div>
+
+    <div class="global-actions" id="globalActions" style="display: none;">
+        <button class="fab secondary" onclick="resetAll()">
+            🔄 Nuevo Análisis
+        </button>
+        <button class="fab" onclick="exportToExcel()">
+            📥 Exportar a Excel
+        </button>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>Procesando archivo...</h3>
+        </div>
+    </div>
+
+    <script>
+        const categorias = {
+            gestores: { nombre: 'Gestores', icono: '👔', data: null },
+            operadores: { nombre: 'Operadores de Enlace', icono: '📞', data: null },
+            coordinadores: { nombre: 'Coordinadores de Sala', icono: '🎯', data: null }
+        };
+
+        let filterType = 'dia';
+        let currentResults = {};
+
+        // Mes y año detectados de los datos cargados
+        let mesDetectado  = null;  // 1-12
+        let anyoDetectado = null;  // e.g. 2026
+
+        const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio',
+                          'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+        function nombreMes(m) {
+            return m >= 1 && m <= 12 ? MESES_ES[m - 1] : 'mes';
+        }
+
+        function getMesAnyo() {
+            // Devuelve string tipo "marzo 2026" o "mes" si no detectado
+            if (mesDetectado && anyoDetectado) {
+                return `${nombreMes(mesDetectado)} ${anyoDetectado}`;
+            }
+            return 'mes';
+        }
+
+        function getMesAnyoMayus() {
+            if (mesDetectado && anyoDetectado) {
+                return `${nombreMes(mesDetectado).toUpperCase()} ${anyoDetectado}`;
+            }
+            return 'MES';
+        }
+
+        const turnosConfig = {
+            manana: {
+                icono: '🌅',
+                nombre: 'Turno de Mañana',
+                horario: '08:00 - 15:00 / 07:00 - 15:00',
+                codigos: ['M7', 'M', 'M8', 'M9', 'M6', 'MM']
+            },
+            tarde: {
+                icono: '🌇',
+                nombre: 'Turno de Tarde',
+                horario: '15:00 - 22:00 / 15:00 - 23:00 / 17:00 - 22:00',
+                codigos: ['T7', 'T', 'T5', 'TT']
+            },
+            noche: {
+                icono: '🌙',
+                nombre: 'Turno de Noche',
+                horario: '22:00 - 08:00 / 23:00 - 07:00 / 22:00 - 06:00',
+                codigos: ['N+', 'N', 'N1', 'N2', 'N9', 'NN']
+            }
+        };
+
+        function handleFileUpload(categoria, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loadingOverlay').classList.add('active');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+                    const sheetName = workbook.SheetNames.includes('Cuadrante') ? 'Cuadrante' : workbook.SheetNames[0];
+                    const firstSheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true, defval: null });
+                    categorias[categoria].data = processCuadranteData(jsonData);
+                    
+                    // Actualizar UI
+                    document.getElementById(`label-${categoria}`).classList.add('loaded');
+                    document.getElementById(`label-${categoria}`).innerHTML = `✅ ${file.name}`;
+                    document.getElementById(`card-${categoria}`).classList.add('completed');
+                    
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                    
+                    checkAllLoaded();
+                } catch (error) {
+                    alert(`Error al procesar ${categoria}: ${error.message}`);
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Convierte serial de fecha Excel al día del mes
+        function excelSerialToDay(serial) {
+            // Excel cuenta días desde 1900-01-01 (con bug 1900-02-29)
+            const msPerDay = 86400 * 1000;
+            const date = new Date(Math.round((serial - 25569) * msPerDay));
+            return date.getUTCDate();
+        }
+
+        // Convierte serial de fecha Excel a {dia, mes, anyo}
+        function excelSerialToDate(serial) {
+            const msPerDay = 86400 * 1000;
+            const date = new Date(Math.round((serial - 25569) * msPerDay));
+            return { dia: date.getUTCDate(), mes: date.getUTCMonth() + 1, anyo: date.getUTCFullYear() };
+        }
+
+        function processCuadranteData(data) {
+            const empleados = [];
+
+            // ── Estructura real de PGPlanning ──────────────────────────
+            // Fila 0 (índice): "Empleado" en col 0, "Marzo" en col 3
+            // Fila 1: días semana (D, L, M, X…) — ignorar
+            // Fila 2: fechas reales (seriales Excel en SheetJS)  ← CLAVE
+            // Fila 3+: datos de empleados
+            // Columna 0: nombre | cols 1,2: vacías | col 3+: turnos
+            // ───────────────────────────────────────────────────────────
+
+            let empleadoCol = -1;   // columna con nombre del empleado
+            let fechaRow    = -1;   // fila que contiene las fechas
+            let dataStartRow = -1;  // primera fila de empleados
+
+            // 1. Localizar la fila con "Empleado" en col 0
+            for (let i = 0; i < Math.min(data.length, 15); i++) {
+                const row = data[i];
+                if (!row) continue;
+                for (let j = 0; j < Math.min(row.length, 10); j++) {
+                    const v = row[j];
+                    if (typeof v === 'string' && v.trim().toLowerCase() === 'empleado') {
+                        empleadoCol = j;
+                        // La fila de fechas suele estar 2 filas más abajo
+                        // Buscarla entre las 5 filas siguientes
+                        for (let k = i + 1; k < Math.min(data.length, i + 6); k++) {
+                            const r2 = data[k];
+                            if (!r2) continue;
+                            let countFechas = 0;
+                            for (let c = 0; c < r2.length; c++) {
+                                const val = r2[c];
+                                // Fecha serial Excel (rango 2026 ≈ 45658–46020)
+                                if (typeof val === 'number' && val > 45000 && val < 50000) {
+                                    countFechas++;
+                                }
+                                // O string con formato fecha dd/mm o número 1-31
+                                if (typeof val === 'string' && /^\d{1,2}[\/\-]\d{1,2}/.test(val.trim())) {
+                                    countFechas++;
+                                }
+                                // O string con formato ISO AAAA-MM-DD (p.ej. "2026-06-01")
+                                if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val.trim())) {
+                                    countFechas++;
+                                }
+                            }
+                            if (countFechas >= 5) {
+                                fechaRow = k;
+                                dataStartRow = k + 1;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (empleadoCol !== -1) break;
+            }
+
+            // Fallback si no encontramos estructura estándar
+            if (empleadoCol === -1) empleadoCol = 0;
+            if (fechaRow === -1) {
+                // Buscar en todo el array
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i];
+                    if (!row) continue;
+                    let count = 0;
+                    for (const v of row) {
+                        if (typeof v === 'number' && v > 45000 && v < 50000) count++;
+                        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v.trim())) count++;
+                        if (typeof v === 'string' && /^\d{1,2}[\/\-]\d{1,2}/.test(v.trim())) count++;
+                    }
+                    if (count >= 5) { fechaRow = i; dataStartRow = i + 1; break; }
+                }
+            }
+            if (dataStartRow === -1) dataStartRow = 1;
+
+            // 2. Construir mapa: índice de columna → número de día del mes
+            // dayMap[colIndex] = dayNumber (1-31)
+            const dayMap = {};
+            if (fechaRow !== -1) {
+                const fRow = data[fechaRow];
+                if (fRow) {
+                    for (let c = 0; c < fRow.length; c++) {
+                        const v = fRow[c];
+                        if (typeof v === 'number' && v > 45000 && v < 50000) {
+                            dayMap[c] = excelSerialToDay(v);
+                            // Capturar mes y año de la primera fecha encontrada
+                            if (!mesDetectado) {
+                                const fd = excelSerialToDate(v);
+                                mesDetectado  = fd.mes;
+                                anyoDetectado = fd.anyo;
+                            }
+                        } else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v.trim())) {
+                            // Formato ISO "AAAA-MM-DD" (texto, no fecha real de Excel)
+                            const m = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+                            dayMap[c] = parseInt(m[3], 10);
+                            if (!mesDetectado) {
+                                mesDetectado  = parseInt(m[2], 10);
+                                anyoDetectado = parseInt(m[1], 10);
+                            }
+                        } else if (typeof v === 'number' && v >= 1 && v <= 31) {
+                            dayMap[c] = v;
+                        } else if (typeof v === 'string') {
+                            const m = v.trim().match(/^(\d{1,2})[\/\-]/);
+                            if (m) dayMap[c] = parseInt(m[1]);
+                        }
+                    }
+                }
+            }
+
+            // Si no tenemos mapa de días, asumir consecutivos desde col 3
+            if (Object.keys(dayMap).length === 0) {
+                const startCol = empleadoCol + 1;
+                for (let d = 0; d < 31; d++) {
+                    dayMap[startCol + d] = d + 1;
+                }
+            }
+
+            // 3. Procesar filas de empleados
+            const palabrasIgnorar = ['empleado','turnos','la solución','total','resumen'];
+
+            for (let i = dataStartRow; i < data.length; i++) {
+                const row = data[i];
+                if (!row) continue;
+
+                const rawEmp = row[empleadoCol];
+                if (rawEmp === undefined || rawEmp === null || rawEmp === '') continue;
+
+                const empleadoStr = rawEmp.toString().trim();
+                if (!empleadoStr) continue;
+
+                // Ignorar filas especiales
+                const lower = empleadoStr.toLowerCase();
+                if (palabrasIgnorar.some(p => lower.includes(p))) continue;
+                if (/^[NLMTFV][^,]{0,2}:/.test(empleadoStr)) continue; // leyendas tipo "N+: turno noche"
+
+                const dias = {};
+                for (const [colStr, diaNum] of Object.entries(dayMap)) {
+                    const col = parseInt(colStr);
+                    if (col >= row.length) continue;
+                    const val = row[col];
+                    if (val === undefined || val === null) continue;
+                    const turnoStr = val.toString().trim();
+                    if (turnoStr !== '') {
+                        dias[diaNum] = turnoStr;
+                    }
+                }
+
+                if (Object.keys(dias).length > 0) {
+                    empleados.push({ empleado: empleadoStr, dias });
+                }
+            }
+
+            return empleados;
+        }
+
+        // Devuelve array de días disponibles en los datos cargados
+        function getDiasDisponibles() {
+            const diasSet = new Set();
+            Object.values(categorias).forEach(cat => {
+                if (!cat.data) return;
+                cat.data.forEach(emp => {
+                    Object.keys(emp.dias).forEach(d => diasSet.add(parseInt(d)));
+                });
+            });
+            return [...diasSet].sort((a, b) => a - b);
+        }
+
+        function checkAllLoaded() {
+            const anyLoaded = Object.values(categorias).some(cat => cat.data !== null);
+            if (anyLoaded) {
+                document.getElementById('filtersSection').classList.add('active');
+                document.getElementById('globalActions').style.display = 'flex';
+
+                // Actualizar label del filtro con el mes detectado
+                const labelDia = document.getElementById('label-dia-filtro');
+                if (labelDia) labelDia.textContent = `Selecciona el día de ${nombreMes(mesDetectado) || 'mes'}`;
+
+                // Auto-detectar: si todos los datos tienen un único día, rellenarlo
+                const dias = getDiasDisponibles();
+                if (dias.length === 1) {
+                    document.getElementById('diaEspecifico').value = dias[0];
+                    document.getElementById('diaInicio').value = dias[0];
+                    document.getElementById('diaFin').value = dias[0];
+                    const hint = document.getElementById('single-day-hint');
+                    if (hint) hint.textContent = `📌 Extracción de un solo día detectada: ${dias[0]} de ${getMesAnyo()}`;
+                } else {
+                    const hint = document.getElementById('single-day-hint');
+                    if (hint) hint.textContent = '';
+                }
+            }
+        }
+
+        function setFilterType(type) {
+            filterType = type;
+            document.querySelectorAll('.filter-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.filter-panel').forEach(panel => panel.classList.remove('active'));
+            
+            document.getElementById(`btn-${type}`).classList.add('active');
+            document.getElementById(`panel-${type}`).classList.add('active');
+        }
+
+        function clasificarTurno(turno) {
+            if (!turno) return null;
+            
+            const turnoUpper = turno.toUpperCase();
+            
+            // Verificar cada categoría
+            for (const [tipo, config] of Object.entries(turnosConfig)) {
+                for (const codigo of config.codigos) {
+                    if (turnoUpper.startsWith(codigo)) {
+                        return tipo;
+                    }
+                }
+            }
+            
+            // Si no coincide con ninguno, retornar el tipo basado en la primera letra
+            if (turnoUpper.startsWith('M')) return 'manana';
+            if (turnoUpper.startsWith('T')) return 'tarde';
+            if (turnoUpper.startsWith('N')) return 'noche';
+            
+            return 'otros';
+        }
+
+        function applyFilters() {
+            const diasSeleccionados = [];
+            
+            if (filterType === 'dia') {
+                const dia = parseInt(document.getElementById('diaEspecifico').value);
+                if (dia >= 1 && dia <= 31) {
+                    diasSeleccionados.push(dia);
+                } else {
+                    alert('Selecciona un día válido entre 1 y 31');
+                    return;
+                }
+            } else {
+                const inicio = parseInt(document.getElementById('diaInicio').value);
+                const fin = parseInt(document.getElementById('diaFin').value);
+                
+                if (inicio < 1 || fin > 31 || inicio > fin) {
+                    alert('Rango de días inválido');
+                    return;
+                }
+                
+                for (let d = inicio; d <= fin; d++) {
+                    diasSeleccionados.push(d);
+                }
+            }
+            
+            // Reiniciar resultados
+            currentResults = {};
+            
+            // Procesar cada día seleccionado por separado
+            diasSeleccionados.forEach(dia => {
+                currentResults[dia] = {};
+                
+                Object.entries(categorias).forEach(([catKey, cat]) => {
+                    currentResults[dia][catKey] = {
+                        manana: [],
+                        tarde: [],
+                        noche: [],
+                        otros: [],
+                        ausencias: []
+                    };
+                    
+                    if (!cat.data) return; // categoría no cargada, se omite
+                    cat.data.forEach(emp => {
+                        const turno = emp.dias[dia];
+                        
+                        if (!turno) {
+                            // No hay asignación para este día
+                            return;
+                        }
+                        
+                        const tipoTurno = clasificarTurno(turno);
+                        
+                        const empleadoData = {
+                            empleado: emp.empleado,
+                            turno: turno,
+                            dia: dia
+                        };
+                        
+                        if (tipoTurno === 'manana') {
+                            currentResults[dia][catKey].manana.push(empleadoData);
+                        } else if (tipoTurno === 'tarde') {
+                            currentResults[dia][catKey].tarde.push(empleadoData);
+                        } else if (tipoTurno === 'noche') {
+                            currentResults[dia][catKey].noche.push(empleadoData);
+                        } else if (['L', 'V', 'BE', 'PL', 'FC', 'FO', 'FM', 'F', 'EX', 'CMH'].some(prefix => 
+                            turno.toUpperCase().startsWith(prefix))) {
+                            currentResults[dia][catKey].ausencias.push(empleadoData);
+                        } else {
+                            currentResults[dia][catKey].otros.push(empleadoData);
+                        }
+                    });
+                });
+            });
+            
+            renderResults(diasSeleccionados);
+        }
+
+        function renderResults(dias) {
+            document.getElementById('resultsSection').classList.add('active');
+            
+            // Calcular totales globales
+            let totalManana = 0, totalTarde = 0, totalNoche = 0, totalEmpleados = 0;
+            
+            Object.values(currentResults).forEach(diaData => {
+                Object.values(diaData).forEach(cat => {
+                    totalManana += cat.manana.length;
+                    totalTarde += cat.tarde.length;
+                    totalNoche += cat.noche.length;
+                    totalEmpleados += cat.manana.length + cat.tarde.length + cat.noche.length;
+                });
+            });
+            
+            const rangoTexto = dias.length === 1 ? 
+                `Día ${dias[0]} de ${nombreMes(mesDetectado) || 'mes'}` : 
+                `Días ${dias[0]} al ${dias[dias.length-1]} de ${nombreMes(mesDetectado) || 'mes'}`;
+            
+            document.getElementById('summaryCards').innerHTML = `
+                <div class="summary-card">
+                    <h3>Período Analizado</h3>
+                    <div class="number" style="font-size: 1.5em;">${rangoTexto}</div>
+                    <div class="detail">${dias.length} día(s)</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Empleados Activos</h3>
+                    <div class="number">${totalEmpleados}</div>
+                    <div class="detail">En turnos de trabajo</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Turno de Mañana</h3>
+                    <div class="number" style="color: #27ae60;">${totalManana}</div>
+                    <div class="detail">Personas asignadas</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Turno de Tarde</h3>
+                    <div class="number" style="color: #f39c12;">${totalTarde}</div>
+                    <div class="detail">Personas asignadas</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Turno de Noche</h3>
+                    <div class="number" style="color: #2980b9;">${totalNoche}</div>
+                    <div class="detail">Personas asignadas</div>
+                </div>
+            `;
+            
+            let html = '';
+            
+            // Si es un solo día, mostrar agrupado por categoría
+            // Si es rango, mostrar por día primero, luego por categoría
+            if (dias.length === 1) {
+                const dia = dias[0];
+                const diaData = currentResults[dia];
+                
+                html += `<div style="margin-bottom: 20px; color: #667eea; font-size: 1.2em; text-align: center;">
+                    Mostrando resultados para el <strong>Día ${dia} de ${nombreMes(mesDetectado) || 'mes'} ${anyoDetectado || ''}</strong>
+                </div>`;
+                
+                Object.entries(categorias).forEach(([catKey, cat]) => {
+                    if (!cat.data) return; // no cargada
+                    const res = diaData[catKey];
+                    html += renderCategoriaSection(cat, res, dia);
+                });
+            } else {
+                // Rango de días - agrupar por día
+                dias.forEach(dia => {
+                    const diaData = currentResults[dia];
+                    
+                    html += `
+                        <div class="dia-section">
+                            <div class="dia-header">
+                                📅 Día ${dia} de ${nombreMes(mesDetectado) || 'mes'} ${anyoDetectado || ''}
+                            </div>
+                    `;
+                    
+                    Object.entries(categorias).forEach(([catKey, cat]) => {
+                        if (!cat.data) return; // no cargada
+                        const res = diaData[catKey];
+                        html += renderCategoriaContent(cat, res, dia);
+                    });
+                    
+                    html += `</div>`;
+                });
+            }
+            
+            document.getElementById('resultsContent').innerHTML = html;
+            
+            // Scroll a resultados
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderCategoriaSection(cat, res, dia) {
+            const totalCat = res.manana.length + res.tarde.length + res.noche.length;
+            
+            return `
+                <div class="category-section">
+                    <div class="category-header">
+                        <h2>${cat.icono} ${cat.nombre}</h2>
+                        <div class="category-stats">
+                            <span class="stat-pill">🌅 Mañana: ${res.manana.length}</span>
+                            <span class="stat-pill">🌇 Tarde: ${res.tarde.length}</span>
+                            <span class="stat-pill">🌙 Noche: ${res.noche.length}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="turno-section turno-manana">
+                        <div class="turno-header">
+                            <div class="turno-icon">🌅</div>
+                            <div class="turno-title">
+                                <h3>Turno de Mañana</h3>
+                                <p>${turnosConfig.manana.horario}</p>
+                            </div>
+                            <div class="contador">${res.manana.length}</div>
+                        </div>
+                        ${res.manana.length > 0 ? `
+                            <div class="empleados-grid">
+                                ${res.manana.map(e => `
+                                    <div class="empleado-tag" title="Turno específico: ${e.turno}">
+                                        ${e.empleado}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="empty-turno">No hay asignaciones en este turno</div>'}
+                    </div>
+                    
+                    <div class="turno-section turno-tarde">
+                        <div class="turno-header">
+                            <div class="turno-icon">🌇</div>
+                            <div class="turno-title">
+                                <h3>Turno de Tarde</h3>
+                                <p>${turnosConfig.tarde.horario}</p>
+                            </div>
+                            <div class="contador">${res.tarde.length}</div>
+                        </div>
+                        ${res.tarde.length > 0 ? `
+                            <div class="empleados-grid">
+                                ${res.tarde.map(e => `
+                                    <div class="empleado-tag" title="Turno específico: ${e.turno}">
+                                        ${e.empleado}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="empty-turno">No hay asignaciones en este turno</div>'}
+                    </div>
+                    
+                    <div class="turno-section turno-noche">
+                        <div class="turno-header">
+                            <div class="turno-icon">🌙</div>
+                            <div class="turno-title">
+                                <h3>Turno de Noche</h3>
+                                <p>${turnosConfig.noche.horario}</p>
+                            </div>
+                            <div class="contador">${res.noche.length}</div>
+                        </div>
+                        ${res.noche.length > 0 ? `
+                            <div class="empleados-grid">
+                                ${res.noche.map(e => `
+                                    <div class="empleado-tag" title="Turno específico: ${e.turno}">
+                                        ${e.empleado}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div class="empty-turno">No hay asignaciones en este turno</div>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCategoriaContent(cat, res, dia) {
+            return `
+                <div style="padding: 20px 30px; border-bottom: 1px solid #e0e0e0;">
+                    <h3 style="color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        ${cat.icono} ${cat.nombre}
+                        <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 15px; font-size: 14px;">
+                            🌅${res.manana.length} | 🌇${res.tarde.length} | 🌙${res.noche.length}
+                        </span>
+                    </h3>
+                    
+                    ${res.manana.length > 0 ? `
+                        <div style="margin-bottom: 10px;">
+                            <strong style="color: #27ae60;">Mañana (${res.manana.length}):</strong>
+                            <span style="color: #555;">${res.manana.map(e => e.empleado).join(', ')}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${res.tarde.length > 0 ? `
+                        <div style="margin-bottom: 10px;">
+                            <strong style="color: #f39c12;">Tarde (${res.tarde.length}):</strong>
+                            <span style="color: #555;">${res.tarde.map(e => e.empleado).join(', ')}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${res.noche.length > 0 ? `
+                        <div>
+                            <strong style="color: #2980b9;">Noche (${res.noche.length}):</strong>
+                            <span style="color: #555;">${res.noche.map(e => e.empleado).join(', ')}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${res.manana.length === 0 && res.tarde.length === 0 && res.noche.length === 0 ? 
+                        '<div style="color: #95a5a6; font-style: italic;">Sin asignaciones de turno este día</div>' : ''}
+                </div>
+            `;
+        }
+
+        // Etiqueta legible para un código de turno
+        function etiquetaTurno(codigo) {
+            const c = codigo.toUpperCase();
+            // Mañana
+            if (/^(M7|M8|M9|M6|MM|M)\b/.test(c)) return 'Mañana';
+            // Tarde
+            if (/^(T7|T5|TT|T)\b/.test(c)) return 'Tarde';
+            // Noche
+            if (/^(N\+|N1|N2|N9|NN|N)\b/.test(c)) return 'Noche';
+            return null; // no es turno de dimensionamiento
+        }
+
+        // Etiqueta descriptiva para turnos fuera de dimensionamiento
+        function etiquetaOtro(codigo) {
+            const c = codigo.toUpperCase();
+            if (c.startsWith('BE'))  return 'Baja/Enfermedad';
+            if (c.startsWith('PL'))  return 'Permiso/Licencia';
+            if (c.startsWith('FC') || c.startsWith('FO') || c.startsWith('FM') || c === 'F') return 'Formación';
+            if (c.startsWith('V'))   return 'Vacaciones';
+            if (c === 'L')           return 'Libre';
+            if (c === '*')           return 'Libre';
+            if (c.startsWith('EX'))  return 'Excedencia';
+            if (c.startsWith('CMH')) return 'Compensación horas';
+            return codigo; // devolver el código tal cual si no lo reconocemos
+        }
+
+        function exportToExcel() {
+            if (!currentResults || Object.keys(currentResults).length === 0) {
+                alert('No hay datos para exportar');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const dias = Object.keys(currentResults).map(d => parseInt(d)).sort((a, b) => a - b);
+            const diasTexto = dias.length === 1 ? `Dia${dias[0]}` : `Dias${dias[0]}al${dias[dias.length-1]}`;
+            const mesAnyoLabel = getMesAnyoMayus(); // e.g. "MARZO 2026"
+
+            // Orden de categorías en la hoja: coordinadores → operadores → gestores
+            const ordenCategorias = ['coordinadores', 'operadores', 'gestores'];
+
+            // ── Una hoja por día ────────────────────────────────────────
+            dias.forEach(dia => {
+                const rows = [];
+
+                // Cabecera del día
+                rows.push([`CUADRANTE DÍA ${dia} DE ${mesAnyoLabel}`]);
+                rows.push(['']);
+
+                // Bloques por sección de turnos: mañana, tarde, noche
+                const bloquesTurno = [
+                    { label: 'TURNO DE MAÑANA',  key: 'manana' },
+                    { label: 'TURNO DE TARDE',    key: 'tarde'  },
+                    { label: 'TURNO DE NOCHE',    key: 'noche'  },
+                ];
+
+                bloquesTurno.forEach(({ label, key }) => {
+                    // Calcular totales de este turno para el día
+                    const totales = {};
+                    ordenCategorias.forEach(catKey => {
+                        if (categorias[catKey].data) {
+                            totales[catKey] = currentResults[dia][catKey][key].length;
+                        }
+                    });
+                    const totalGlobal = Object.values(totales).reduce((a, b) => a + b, 0);
+
+                    rows.push([label, '', '', '', `Total: ${totalGlobal}`]);
+                    rows.push(['Categoría', 'Nombre', 'Código', 'Turno', '']);
+
+                    ordenCategorias.forEach(catKey => {
+                        if (!categorias[catKey].data) return;
+                        const lista = currentResults[dia][catKey][key];
+                        if (lista.length === 0) return;
+
+                        lista
+                            .slice()
+                            .sort((a, b) => a.empleado.localeCompare(b.empleado))
+                            .forEach(e => {
+                                const etiqueta = etiquetaTurno(e.turno) || e.turno;
+                                rows.push([
+                                    categorias[catKey].nombre,
+                                    e.empleado,
+                                    e.turno,
+                                    etiqueta,
+                                    ''
+                                ]);
+                            });
+                    });
+
+                    rows.push(['']);
+                });
+
+                // ── Sección "Fuera de dimensionamiento" ────────────────
+                rows.push(['FUERA DE DIMENSIONAMIENTO (no computan)']);
+                rows.push(['Categoría', 'Nombre', 'Código', 'Motivo']);
+
+                let hayFuera = false;
+                ordenCategorias.forEach(catKey => {
+                    if (!categorias[catKey].data) return;
+                    const res = currentResults[dia][catKey];
+                    // "otros" y "ausencias" son los que no son M/T/N
+                    const fuera = [...(res.otros || []), ...(res.ausencias || [])];
+                    fuera
+                        .slice()
+                        .sort((a, b) => a.empleado.localeCompare(b.empleado))
+                        .forEach(e => {
+                            rows.push([
+                                categorias[catKey].nombre,
+                                e.empleado,
+                                e.turno,
+                                etiquetaOtro(e.turno)
+                            ]);
+                            hayFuera = true;
+                        });
+                });
+                if (!hayFuera) rows.push(['', '(ninguno)', '', '']);
+
+                rows.push(['']);
+
+                // ── Resumen numérico al final de la hoja ───────────────
+                rows.push(['RESUMEN']);
+                rows.push(['Categoría', 'Mañana', 'Tarde', 'Noche', 'Total operativo']);
+                let sumM = 0, sumT = 0, sumN = 0;
+                ordenCategorias.forEach(catKey => {
+                    if (!categorias[catKey].data) return;
+                    const res = currentResults[dia][catKey];
+                    const m = res.manana.length;
+                    const t = res.tarde.length;
+                    const n = res.noche.length;
+                    sumM += m; sumT += t; sumN += n;
+                    rows.push([categorias[catKey].nombre, m, t, n, m + t + n]);
+                });
+                rows.push(['TOTAL', sumM, sumT, sumN, sumM + sumT + sumN]);
+
+                // Nombre de pestaña: "Día 17" (máx 31 chars)
+                const sheetName = `Día ${dia}`;
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+
+                // Anchos de columna
+                ws['!cols'] = [
+                    { wch: 26 }, // Categoría
+                    { wch: 36 }, // Nombre
+                    { wch: 10 }, // Código
+                    { wch: 12 }, // Turno (Mañana/Tarde/Noche)
+                ];
+
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            const mesAnyoCorto = mesDetectado && anyoDetectado
+                ? `${nombreMes(mesDetectado).slice(0,3)}${anyoDetectado}`
+                : new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Cuadrantes_${diasTexto}_${mesAnyoCorto}.xlsx`);
+        }
+
+        function resetAll() {
+            mesDetectado  = null;
+            anyoDetectado = null;
+            location.reload();
+        }
+
+        // Permitir drag and drop
+        ['gestores', 'operadores', 'coordinadores'].forEach(cat => {
+            const dropZone = document.getElementById(`label-${cat}`);
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.transform = 'scale(1.05)';
+            });
+            
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.style.transform = 'scale(1)';
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.transform = 'scale(1)';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById(`file-${cat}`).files = files;
+                    handleFileUpload(cat, { target: { files: files } });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
